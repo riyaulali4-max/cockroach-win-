@@ -1,0 +1,46 @@
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.json());
+
+// Basic Route
+app.get('/', (req, res) => {
+    res.send('Cockroach Win Game Server Live!');
+});
+
+// Timer Engine (3 Min Cycle)
+let currentTimer = 180;
+let periodNumber = Date.now().toString().slice(-8);
+
+setInterval(() => {
+    currentTimer--;
+
+    io.emit('timer-tick', {
+        period: periodNumber,
+        timer: currentTimer
+    });
+
+    if (currentTimer <= 0) {
+        const colors = ['RED', 'GREEN'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        const randomNumber = Math.floor(Math.random() * 10);
+
+        io.emit('round-result', {
+            period: periodNumber,
+            result: { color: randomColor, number: randomNumber }
+        });
+
+        currentTimer = 180;
+        periodNumber = Date.now().toString().slice(-8);
+    }
+}, 1000);
+
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
